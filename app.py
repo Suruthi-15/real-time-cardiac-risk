@@ -3,15 +3,14 @@ import pandas as pd
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-import joblib
 
 # Set page configuration
 st.set_page_config(page_title="Cardiac Risk Predictor", layout="centered")
 
 # Title
-st.title("🫀 Cardiac Risk Prediction Using Clustering")
+st.title("🫀 Cardiac Risk Prediction Using Clustering (Low, Moderate, High)")
 
-# Load data and model
+# Load data
 @st.cache_data
 def load_data():
     df = pd.read_csv("numeric_dataset.csv")
@@ -19,7 +18,7 @@ def load_data():
 
 df = load_data()
 
-# Selected features used for training
+# Selected features used for clustering
 selected_features = ['Age', 'Weight', 'Height', 'Medical_Conditions', 'Medication',
                      'Smoker', 'Alcohol_Consumption', 'ECG', 'Calories_Intake', 'Water_Intake',
                      'Stress_Level', 'Mood', 'Muscle_Mass', 'Health_Score',
@@ -32,51 +31,51 @@ X = df[selected_features]
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-# Train KMeans model
-optimal_k = 2  # Update this if you found a different optimal_k
+# Train KMeans model with 3 clusters
+optimal_k = 3
 kmeans = KMeans(n_clusters=optimal_k, init='k-means++', random_state=42)
 kmeans.fit(X_scaled)
 
-# Risk label mapping
-risk_labels = {0: "Low Risk", 1: "High Risk"}
+# Determine cluster-to-risk mapping based on cluster centers
+cluster_risks = kmeans.cluster_centers_.mean(axis=1)
+sorted_indices = np.argsort(cluster_risks)
+risk_labels = {sorted_indices[0]: "Low Risk", 
+               sorted_indices[1]: "Moderate Risk", 
+               sorted_indices[2]: "High Risk"}
 
 # Sidebar input mode
 input_mode = st.sidebar.radio("Choose input mode:", ("Upload CSV File", "Enter Manually"))
 
 if input_mode == "Upload CSV File":
-    uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
-
+    uploaded_file = st.file_uploader("Upload a CSV file with health data", type=["csv"])
+    
     if uploaded_file:
         user_data = pd.read_csv(uploaded_file)
 
-        # Ensure required columns are present
         if all(col in user_data.columns for col in selected_features):
             X_user = user_data[selected_features]
             X_user_scaled = scaler.transform(X_user)
             labels = kmeans.predict(X_user_scaled)
-
-            # Map labels to risk
             risks = [risk_labels[label] for label in labels]
             user_data["Predicted_Cluster"] = labels
             user_data["Predicted_Risk"] = risks
 
-            st.success("Cluster Prediction Completed:")
-            st.write(user_data[["Predicted_Cluster", "Predicted_Risk"]])
+            st.success("Prediction Completed:")
+            st.dataframe(user_data[["Predicted_Cluster", "Predicted_Risk"]])
         else:
-            st.error("Uploaded CSV is missing one or more required features.")
+            st.error("Uploaded file missing required columns.")
 
 else:
     st.subheader("Enter Health Data Manually")
-
-    # Create input widgets for all selected features
     input_data = {}
+    
     for feature in selected_features:
         input_data[feature] = st.number_input(f"{feature}", value=0.0)
 
     if st.button("Predict Risk"):
-        single_df = pd.DataFrame([input_data])
-        single_scaled = scaler.transform(single_df)
-        label = kmeans.predict(single_scaled)[0]
+        input_df = pd.DataFrame([input_data])
+        input_scaled = scaler.transform(input_df)
+        label = kmeans.predict(input_scaled)[0]
         risk = risk_labels[label]
 
         st.success(f"Predicted Cluster: {label}")
