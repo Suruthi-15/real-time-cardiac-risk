@@ -82,13 +82,18 @@ else:
 
         st.success(f"Predicted Cluster: {label}")
         st.info(f"Predicted Cardiac Risk: **{risk}**")
-# Anomaly detection on user-uploaded data
-            anomaly_model = IsolationForest(contamination=0.1)
-            anomaly_model.fit(X_user[['Body Fat Percentage', 'Heart Rate', 'Blood Oxygen Level']])
-            user_data['Anomaly'] = anomaly_model.predict(X_user[['Body Fat Percentage', 'Heart Rate', 'Blood Oxygen Level']])
+# Anomaly detection on user-uploaded data (ensure columns exist)
+            anomaly_columns = ['Body Fat Percentage', 'Heart Rate', 'Blood Oxygen Level']
+            if all(col in user_data.columns for col in anomaly_columns):
+                anomaly_model = IsolationForest(contamination=0.1)
+                anomaly_model.fit(user_data[anomaly_columns])
+                user_data['Anomaly'] = anomaly_model.predict(user_data[anomaly_columns])
 
-            st.write("Anomaly Detection Results:")
-            st.dataframe(user_data[['Health Score', 'Anomaly']])
+                st.write("Anomaly Detection Results:")
+                st.dataframe(user_data[['Health Score', 'Anomaly']])  # Display anomaly results
+            else:
+                st.error("Uploaded file missing required anomaly columns.")
+
         else:
             st.error("Uploaded file missing required columns.")
 
@@ -108,12 +113,15 @@ else:
         st.success(f"Predicted Cluster: {label}")
         st.info(f"Predicted Cardiac Risk: **{risk}**")
 
-        # Anomaly detection on manually entered data
-        anomaly_model = IsolationForest(contamination=0.1)
-        anomaly_model.fit(input_df[['Body Fat Percentage', 'Heart Rate', 'Blood Oxygen Level']])
-        anomaly = anomaly_model.predict(input_df[['Body Fat Percentage', 'Heart Rate', 'Blood Oxygen Level']])
+        # Anomaly detection on manually entered data (ensure columns exist)
+        anomaly_columns = ['Body Fat Percentage', 'Heart Rate', 'Blood Oxygen Level']
+        if all(col in input_df.columns for col in anomaly_columns):
+            anomaly_model = IsolationForest(contamination=0.1)
+            anomaly_model.fit(input_df[anomaly_columns])
+            anomaly = anomaly_model.predict(input_df[anomaly_columns])
 
-        st.write("Anomaly Detection Results:")
-        st.write("Anomaly Prediction:", "Anomaly" if anomaly[0] == -1 else "Normal")
-
+            st.write("Anomaly Detection Results:")
+            st.write("Anomaly Prediction:", "Anomaly" if anomaly[0] == -1 else "Normal")
+        else:
+            st.error("Missing columns for anomaly detection.")
 
