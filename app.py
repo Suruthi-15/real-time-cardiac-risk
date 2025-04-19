@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import IsolationForest
+
 
 # Set page configuration
 st.set_page_config(page_title="Cardiac Risk Predictor", layout="centered")
@@ -80,3 +82,38 @@ else:
 
         st.success(f"Predicted Cluster: {label}")
         st.info(f"Predicted Cardiac Risk: **{risk}**")
+# Anomaly detection on user-uploaded data
+            anomaly_model = IsolationForest(contamination=0.1)
+            anomaly_model.fit(X_user[['Body Fat Percentage', 'Heart Rate', 'Blood Oxygen Level']])
+            user_data['Anomaly'] = anomaly_model.predict(X_user[['Body Fat Percentage', 'Heart Rate', 'Blood Oxygen Level']])
+
+            st.write("Anomaly Detection Results:")
+            st.dataframe(user_data[['Health Score', 'Anomaly']])
+        else:
+            st.error("Uploaded file missing required columns.")
+
+else:
+    st.subheader("Enter Health Data Manually")
+    input_data = {}
+    
+    for feature in selected_features:
+        input_data[feature] = st.number_input(f"{feature}", value=0.0)
+
+    if st.button("Predict Risk"):
+        input_df = pd.DataFrame([input_data])
+        input_scaled = scaler.transform(input_df)
+        label = kmeans.predict(input_scaled)[0]
+        risk = risk_labels[label]
+
+        st.success(f"Predicted Cluster: {label}")
+        st.info(f"Predicted Cardiac Risk: **{risk}**")
+
+        # Anomaly detection on manually entered data
+        anomaly_model = IsolationForest(contamination=0.1)
+        anomaly_model.fit(input_df[['Body Fat Percentage', 'Heart Rate', 'Blood Oxygen Level']])
+        anomaly = anomaly_model.predict(input_df[['Body Fat Percentage', 'Heart Rate', 'Blood Oxygen Level']])
+
+        st.write("Anomaly Detection Results:")
+        st.write("Anomaly Prediction:", "Anomaly" if anomaly[0] == -1 else "Normal")
+
+
