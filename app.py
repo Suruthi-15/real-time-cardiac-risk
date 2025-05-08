@@ -83,30 +83,25 @@ else:
         st.success(f"Predicted Cluster: {label}")
         st.info(f"Predicted Cardiac Risk: **{risk}**")
        
-# Option to show anomaly detection results
-st.subheader(" Anomaly Detection (From Precomputed File)")
+# Anomaly Detection (independent of cluster label)
+anomaly_features = ['Heart_Rate', 'Weight', 'Age']  # You can customize
 
-# Load precomputed anomaly detection file (uploaded separately or included in project folder)
-try:
-    anomaly_df = pd.read_csv("anomaly_detection_with_consensus.csv")
-    
-    # Display the first few rows
-    st.dataframe(anomaly_df[['Heart_Rate', 'Stress_Level', 'final_anomaly']].head())
+# Standardize selected features for anomaly detection
+anomaly_scaler = StandardScaler()
+anomaly_scaled = anomaly_scaler.fit_transform(user_data[anomaly_features])
 
-    # Visualize anomalies (optional)
-    st.subheader(" Final Anomaly Detection Visualization")
-    st.write("Red = Anomalous | Blue = Normal")
+# Fit Isolation Forest
+iso_forest = IsolationForest(contamination=0.05, random_state=42)
+anomaly_labels = iso_forest.fit_predict(anomaly_scaled)
+user_data["Anomaly"] = np.where(anomaly_labels == -1, "Anomaly", "Normal")
 
-    import matplotlib.pyplot as plt
-    import seaborn as sns
+# Show anomalies
+st.subheader("⚠ Anomaly Detection Results")
+st.dataframe(user_data[["Heart_Rate", "Weight", "Age", "Anomaly"]])
 
-    plt.figure(figsize=(10, 6))
-    sns.scatterplot(data=anomaly_df, x='Heart_Rate', y='Stress_Level', 
-                    hue='final_anomaly', palette={1: 'blue', -1: 'red'})
-    plt.title("Consensus Anomalies (flagged by ≥2 models)")
-    st.pyplot(plt)
+# Optionally: Highlight only anomalies
+st.subheader(" Detected Anomalies Only")
+st.dataframe(user_data[user_data["Anomaly"] == "Anomaly"])
 
-except FileNotFoundError:
-    st.error("Anomaly detection file not found. Please upload 'anomaly_detection_with_consensus.csv'.")
 
 
