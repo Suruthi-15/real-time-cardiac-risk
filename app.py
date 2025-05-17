@@ -83,8 +83,12 @@ else:
         st.success(f"Predicted Cluster: {label}")
         st.info(f"Predicted Cardiac Risk: **{risk}**")
        
-# Anomaly Detection (independent of cluster label)
-anomaly_features = ['Heart_Rate', 'Weight', 'Age']  # You can customize
+# Anomaly Detection only if user_data is available
+If input_mode == “Upload CSV File” and uploaded_file:
+    try:
+        st.subheader("Anomaly Detection Results")
+        
+anomaly_features = ['Heart_Rate', 'Weight', 'Age']  # choose relevant features
 
 # Standardize selected features for anomaly detection
 anomaly_scaler = StandardScaler()
@@ -102,6 +106,9 @@ st.dataframe(user_data[["Heart_Rate", "Weight", "Age", "Anomaly"]])
 # Optionally: Highlight only anomalies
 st.subheader(" Detected Anomalies Only")
 st.dataframe(user_data[user_data["Anomaly"] == "Anomaly"])
+
+except exception as e:
+st.error(f"An error occurred during anomaly detection:{e}")
 
 
 
