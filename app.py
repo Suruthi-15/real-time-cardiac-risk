@@ -82,6 +82,56 @@ else:
 
         st.success(f"Predicted Cluster: {label}")
         st.info(f"Predicted Cardiac Risk: **{risk}**")
+        
+from sklearn.ensemble import IsolationForest
+
+# Divider
+st.markdown("---")
+st.header("🔍 Anomaly Detection on Health Data")
+
+st.markdown("Upload a **CSV file** to detect abnormal health patterns (e.g., abnormal heart rate, age, weight, etc.).")
+
+# File uploader for anomaly detection
+anomaly_file = st.file_uploader("Upload CSV for Anomaly Detection", type=["csv"], key="anomaly_file")
+
+if anomaly_file:
+    try:
+        anomaly_df = pd.read_csv(anomaly_file)
+        st.subheader("Uploaded Data for Anomaly Detection")
+        st.dataframe(anomaly_df.head())
+
+        # Select features for anomaly detection
+        st.markdown("### Select Features for Anomaly Detection")
+        anomaly_features = st.multiselect("Choose numeric features", anomaly_df.columns.tolist(), default=['Heart_Rate', 'Age', 'Weight'])
+
+        if len(anomaly_features) >= 2:
+            X_anomaly = anomaly_df[anomaly_features].dropna()
+            scaler_anomaly = StandardScaler()
+            X_anomaly_scaled = scaler_anomaly.fit_transform(X_anomaly)
+
+            # Isolation Forest
+            iso_model = IsolationForest(contamination=0.05, random_state=42)
+            anomaly_labels = iso_model.fit_predict(X_anomaly_scaled)
+
+            # Attach labels
+            result_df = anomaly_df.loc[X_anomaly.index].copy()
+            result_df["Anomaly_Label"] = np.where(anomaly_labels == -1, "Anomaly", "Normal")
+
+            st.markdown("### 🔬 Anomaly Detection Results")
+            st.dataframe(result_df[anomaly_features + ["Anomaly_Label"]])
+
+            # Show only anomalies
+            st.markdown("### ⚠ Detected Anomalies")
+            anomalies_only = result_df[result_df["Anomaly_Label"] == "Anomaly"]
+            if not anomalies_only.empty:
+                st.dataframe(anomalies_only[anomaly_features + ["Anomaly_Label"]])
+            else:
+                st.success("No anomalies detected.")
+        else:
+            st.warning("Please select at least two features.")
+    except Exception as e:
+        st.error(f"Error processing file: {e}")
+
        
 
 
